@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blood Tracking Camera</title>
+    <style>
+        body {
+            text-align: center;
+            background: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        video, canvas {
+            width: 90%;
+            max-width: 600px;
+            margin-top: 20px;
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Blood Tracking Camera</h1>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Access camera
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                alert("Camera access denied: " + err);
+            });
+
+        // Process video frames
+        video.addEventListener('play', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            function drawFrame() {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let data = frame.data;
+
+                // Isolate red color
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i];
+                    let g = data[i + 1];
+                    let b = data[i + 2];
+
+                    // Keep red, remove other colors
+                    if (r > 100 && r > g * 1.5 && r > b * 1.5) {
+                        // Keep red pixel
+                        data[i] = r;
+                        data[i + 1] = 0;
+                        data[i + 2] = 0;
+                    } else {
+                        // Make pixel black
+                        data[i] = 0;
+                        data[i + 1] = 0;
+                        data[i + 2] = 0;
+                    }
+                }
+
+                ctx.putImageData(frame, 0, 0);
+                requestAnimationFrame(drawFrame);
+            }
+            drawFrame();
+        });
+    </script>
+</body>
+</html>
